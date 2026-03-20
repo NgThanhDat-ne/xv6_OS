@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "vm.h"
 
+extern struct spinlock wait_lock;
 uint64
 sys_exit(void)
 {
@@ -117,31 +118,32 @@ sys_procinfo(void)
   argint(0, &pid);
   argaddr(1, &addr);
 
-  if(pid <= 0)              // ← add this guard
+  if (pid <= 0)
     return -1;
 
   struct proc *p;
   struct procinfo info;
 
-  for(p = proc; p < &proc[NPROC]; p++) {
+  acquire(&wait_lock);                          
+  for (p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
-    if(p->pid == pid && p->state != UNUSED) {  // ← add state check
+    if (p->pid == pid && p->state != UNUSED) {
       info.pid   = p->pid;
-      info.ppid  = p->parent ? p->parent->pid : 0;
+      info.ppid  = p->parent ? p->parent->pid : 0;  // now safe
       info.state = p->state;
       info.sz    = p->sz;
       safestrcpy(info.name, p->name, sizeof(info.name));
       release(&p->lock);
+      release(&wait_lock);                      // ← add this
 
       struct proc *current = myproc();
-      if(copyout(current->pagetable, addr,
-                 (char *)&info, sizeof(info)) < 0)
+      if (copyout(current->pagetable, addr,
+                  (char *)&info, sizeof(info)) < 0)
         return -1;
-
       return 0;
     }
     release(&p->lock);
   }
-
+  release(&wait_lock);                          // ← add this
   return -1;
 }
