@@ -8,6 +8,19 @@
 #include "vm.h"
 
 extern struct spinlock wait_lock;
+
+uint64
+sys_trace(void)
+{
+  int mask;
+    argint(0, &mask);   // get argument
+
+    struct proc *p = myproc();
+    p->trace_mask = mask;
+
+    return 0;
+}
+
 uint64
 sys_exit(void)
 {

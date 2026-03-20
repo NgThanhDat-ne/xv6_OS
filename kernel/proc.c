@@ -169,6 +169,7 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  p->trace_mask = 0; // initialize: no tracing
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -275,6 +276,7 @@ kfork(void)
     return -1;
   }
   np->sz = p->sz;
+  np->trace_mask = p->trace_mask; // inherit mask in fork()
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
